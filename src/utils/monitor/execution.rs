@@ -2,7 +2,7 @@ use crate::{
 	models::{BlockChainType, Monitor},
 	repositories::{NetworkRepository, NetworkService},
 	services::{
-		blockchain::{BlockChainClient, ClientPool, ClientPoolTrait},
+		blockchain::{BlockChainClient, ClientPoolTrait},
 		filter::FilterService,
 	},
 	utils::monitor::MonitorExecutionError,
@@ -26,16 +26,15 @@ pub type ExecutionResult<T> = std::result::Result<T, MonitorExecutionError>;
 ///
 /// # Returns
 /// * `Result<String, ExecutionError>` - JSON string containing matches or error
-pub async fn execute_monitor(
+pub async fn execute_monitor<T: ClientPoolTrait>(
 	monitor_name: &str,
 	network_slug: &str,
 	block_number: &u64,
 	active_monitors: Vec<Monitor>,
+	client_pool: T,
 ) -> ExecutionResult<String> {
 	// Initialize filter service
 	let filter_service = Arc::new(FilterService::new());
-	// Initialize client pool
-	let client_pool = Arc::new(ClientPool::new());
 	// Initialize network service
 	let network_repository = NetworkRepository::new(None).map_err(|e| {
 		MonitorExecutionError::execution_error(

@@ -4,7 +4,10 @@
 //! test environments for both EVM and Stellar chain tests.
 
 use openzeppelin_monitor::{
-	models::{BlockType, EVMTransactionReceipt, Monitor, Network, Trigger},
+	models::{
+		BlockType, EVMTransactionReceipt, Monitor, Network, StellarEvent, StellarTransaction,
+		Trigger,
+	},
 	repositories::{MonitorService, NetworkService, TriggerRepositoryTrait, TriggerService},
 	services::notification::NotificationService,
 };
@@ -23,6 +26,8 @@ pub struct TestData {
 	pub monitor: Monitor,
 	pub network: Network,
 	pub receipts: Vec<EVMTransactionReceipt>,
+	pub stellar_transactions: Vec<StellarTransaction>,
+	pub stellar_events: Vec<StellarEvent>,
 }
 
 pub fn load_test_data(chain: &str) -> TestData {
@@ -38,11 +43,24 @@ pub fn load_test_data(chain: &str) -> TestData {
 		Vec::new()
 	};
 
+	let stellar_transactions: Vec<StellarTransaction> = if chain == "stellar" {
+		read_and_parse_json(&format!("{}/transactions.json", base_path))
+	} else {
+		Vec::new()
+	};
+	let stellar_events: Vec<StellarEvent> = if chain == "stellar" {
+		read_and_parse_json(&format!("{}/events.json", base_path))
+	} else {
+		Vec::new()
+	};
+
 	TestData {
 		blocks,
 		monitor,
 		network,
 		receipts,
+		stellar_transactions,
+		stellar_events,
 	}
 }
 

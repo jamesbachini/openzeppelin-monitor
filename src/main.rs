@@ -203,8 +203,15 @@ async fn main() -> Result<()> {
 				"Executing monitor '{}' for network '{}' and block number: {}",
 				name, network, block_number
 			);
-			let result =
-				execute_monitor(&name, &network, &block_number, active_monitors.clone()).await;
+			let client_pool = ClientPool::new();
+			let result = execute_monitor::<ClientPool>(
+				&name,
+				&network,
+				&block_number,
+				active_monitors.clone(),
+				client_pool,
+			)
+			.await;
 			match result {
 				Ok(matches) => {
 					info!("Execution result: {:?}", matches);
