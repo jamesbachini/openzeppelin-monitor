@@ -29,10 +29,17 @@ async fn test_execute_monitor_evm() {
 	mock_client
 		.expect_get_block_by_number()
 		.return_once(move |_| Ok(Some(test_data.blocks[0].clone())));
+
+	let receipts = test_data.receipts.clone();
+	let counter = std::sync::atomic::AtomicUsize::new(0);
+
 	mock_client
 		.expect_get_transaction_receipt()
 		.times(3)
-		.returning(move |_| Ok(test_data.receipts[0].clone()));
+		.returning(move |_| {
+			let current = counter.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+			Ok(receipts[current].clone())
+		});
 
 	mock_pool
 		.expect_get_evm_client()
@@ -57,7 +64,7 @@ async fn test_execute_monitor_evm() {
 
 	// Parse the JSON result and add more specific assertions based on expected matches
 	let matches: Vec<serde_json::Value> = serde_json::from_str(&result.unwrap()).unwrap();
-	assert!(matches.len() == 3);
+	assert!(matches.len() == 1);
 }
 
 #[tokio::test]
