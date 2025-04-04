@@ -13,6 +13,7 @@ mod cron_utils;
 mod expression;
 pub mod logging;
 pub mod metrics;
+pub mod monitor;
 mod script;
 
 pub use cron_utils::*;

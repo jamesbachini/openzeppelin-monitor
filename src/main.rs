@@ -35,7 +35,10 @@ use crate::{
 		blockchain::{ClientPool, ClientPoolTrait},
 		blockwatcher::{BlockTracker, BlockTrackerTrait, BlockWatcherService, FileBlockStorage},
 	},
-	utils::{logging::setup_logging, metrics::server::create_metrics_server},
+	utils::{
+		logging::setup_logging, metrics::server::create_metrics_server,
+		monitor::execution::execute_monitor,
+	},
 };
 
 use clap::{Arg, Command};
@@ -97,6 +100,24 @@ async fn main() -> Result<()> {
 				.help("Enable metrics server")
 				.action(clap::ArgAction::SetTrue),
 		)
+		.arg(
+			Arg::new("monitorName")
+				.long("monitorName")
+				.help("Monitor name to execute the monitor for")
+				.value_name("MONITOR_NAME"),
+		)
+		.arg(
+			Arg::new("network")
+				.long("network")
+				.help("Network to execute the monitor for")
+				.value_name("NETWORK_SLUG"),
+		)
+		.arg(
+			Arg::new("block")
+				.long("block")
+				.help("Block number to execute the monitor for")
+				.value_name("BLOCK_NUMBER"),
+		)
 		.get_matches();
 
 	// Load environment variables from .env file
@@ -143,6 +164,59 @@ async fn main() -> Result<()> {
 		NetworkRepository,
 		TriggerRepository,
 	>(None, None, None)?;
+
+	let monitor_name = matches
+		.get_one::<String>("monitorName")
+		.map(|s| s.to_string());
+	let network_slug = matches.get_one::<String>("network").map(|s| s.to_string());
+	// Check if the user wants to execute the monitor only for a specific block number or a hash
+	let block_number = matches
+		.get_one::<String>("block")
+		.map(|s| {
+			s.parse::<u64>().map_err(|e| {
+				error!("Failed to parse block number: {}", e);
+				e
+			})
+		})
+		.transpose()?;
+
+	// Check if any specific execution parameters are present
+	let monitor_test_execution =
+		monitor_name.is_some() || network_slug.is_some() || block_number.is_some();
+
+	if monitor_test_execution {
+		// If any parameter is present, enforce all required parameters
+		if network_slug.is_none() || monitor_name.is_none() {
+			error!(
+				"Network slug and monitor name are required when executing a monitor for a specific block"
+			);
+			return Ok(());
+		} else if block_number.is_none() {
+			error!("Block number is required when executing a monitor for a specific block");
+			return Ok(());
+		}
+
+		if let (Some(name), Some(network), Some(block_number)) =
+			(monitor_name, network_slug, block_number)
+		{
+			info!(
+				"Executing monitor '{}' for network '{}' and block number: {}",
+				name, network, block_number
+			);
+			let result =
+				execute_monitor(&name, &network, &block_number, active_monitors.clone()).await;
+			match result {
+				Ok(matches) => {
+					info!("Execution result: {:?}", matches);
+					return Ok(());
+				}
+				Err(e) => {
+					error!("Failed to execute monitor: {}", e);
+					return Ok(());
+				}
+			}
+		}
+	}
 
 	// Check if metrics should be enabled from either CLI flag or env var
 	let metrics_enabled =

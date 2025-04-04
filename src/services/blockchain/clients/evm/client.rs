@@ -244,4 +244,32 @@ impl<T: Send + Sync + Clone + BlockchainTransport> BlockChainClient for EvmClien
 			.into_iter()
 			.collect::<Result<Vec<_>, _>>()
 	}
+
+	async fn get_block_by_number(
+		&self,
+		block_number: &u64,
+	) -> Result<Option<BlockType>, anyhow::Error> {
+		let client = self.alloy_client.clone();
+		let params = json!([
+			format!("0x{:x}", block_number),
+			true // include full transaction objects
+		]);
+		let response = client
+			.send_raw_request("eth_getBlockByNumber", Some(params))
+			.await
+			.with_context(|| format!("Failed to get block: {}", block_number))?;
+
+		let block_data = response
+			.get("result")
+			.ok_or_else(|| anyhow::anyhow!("Missing 'result' field"))?;
+
+		if block_data.is_null() {
+			return Ok(None);
+		}
+
+		let block: EVMBlock = serde_json::from_value(block_data.clone())
+			.map_err(|e| anyhow::anyhow!("Failed to parse block: {}", e))?;
+
+		Ok(Some(BlockType::EVM(Box::new(block))))
+	}
 }
