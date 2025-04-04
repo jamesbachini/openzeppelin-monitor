@@ -1,7 +1,7 @@
 {
   "network_type": "EVM",
   "slug": "optimism_mainnet",
-  "name": "Optimism Mainnet",
+  "name": "OP Mainnet",
   "rpc_urls": [
     {
       "type_": "rpc",
@@ -10,7 +10,7 @@
     }
   ],
   "chain_id": 10,
-  "block_time_ms": 12000,
+  "block_time_ms": 2000,
   "confirmation_blocks": 12,
   "cron_schedule": "0 */1 * * * *",
   "max_past_blocks": 18,
