@@ -39,10 +39,12 @@ async fn test_execute_monitor_evm() {
 		.map(|r| (format!("0x{:x}", r.transaction_hash), r.clone()))
 		.collect();
 
+	let receipt_map = Arc::new(receipt_map);
 	mock_client
 		.expect_get_transaction_receipt()
 		.times(3)
 		.returning(move |hash| {
+			let receipt_map = Arc::clone(&receipt_map);
 			Ok(receipt_map
 				.get(&hash)
 				.cloned()
