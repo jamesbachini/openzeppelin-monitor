@@ -42,9 +42,9 @@ async fn test_execute_monitor_evm() {
 	let receipt_map = Arc::new(receipt_map);
 	mock_client
 		.expect_get_transaction_receipt()
-		.times(3)
 		.returning(move |hash| {
 			let receipt_map = Arc::clone(&receipt_map);
+			println!("hash: {}", hash);
 			Ok(receipt_map
 				.get(&hash)
 				.cloned()
