@@ -4,10 +4,7 @@
 //! test environments for both EVM and Stellar chain tests.
 
 use openzeppelin_monitor::{
-	models::{
-		BlockType, EVMTransactionReceipt, Monitor, Network, StellarEvent, StellarTransaction,
-		Trigger,
-	},
+	models::{BlockType, EVMTransactionReceipt, Monitor, Network, Trigger},
 	repositories::{MonitorService, NetworkService, TriggerRepositoryTrait, TriggerService},
 	services::notification::NotificationService,
 };
@@ -26,8 +23,8 @@ pub struct TestData {
 	pub monitor: Monitor,
 	pub network: Network,
 	pub receipts: Vec<EVMTransactionReceipt>,
-	pub stellar_transactions: Vec<StellarTransaction>,
-	pub stellar_events: Vec<StellarEvent>,
+	// pub stellar_transactions: Vec<StellarTransaction>,
+	// pub stellar_events: Vec<StellarEvent>,
 }
 
 pub fn load_test_data(chain: &str) -> TestData {
@@ -43,24 +40,24 @@ pub fn load_test_data(chain: &str) -> TestData {
 		Vec::new()
 	};
 
-	let stellar_transactions: Vec<StellarTransaction> = if chain == "stellar" {
-		read_and_parse_json(&format!("{}/transactions.json", base_path))
-	} else {
-		Vec::new()
-	};
-	let stellar_events: Vec<StellarEvent> = if chain == "stellar" {
-		read_and_parse_json(&format!("{}/events.json", base_path))
-	} else {
-		Vec::new()
-	};
+	// let stellar_transactions: Vec<StellarTransaction> = if chain == "stellar" {
+	// 	read_and_parse_json(&format!("{}/transactions.json", base_path))
+	// } else {
+	// 	Vec::new()
+	// };
+	// let stellar_events: Vec<StellarEvent> = if chain == "stellar" {
+	// 	read_and_parse_json(&format!("{}/events.json", base_path))
+	// } else {
+	// 	Vec::new()
+	// };
 
 	TestData {
 		blocks,
 		monitor,
 		network,
 		receipts,
-		stellar_transactions,
-		stellar_events,
+		// stellar_transactions,
+		// stellar_events,
 	}
 }
 
@@ -122,12 +119,19 @@ pub fn setup_network_service(
 		.expect_get_all()
 		.return_once(move || networks_clone.clone());
 
-	mock_repo.expect_clone().return_once(move || {
-		let mut cloned_repo = MockNetworkRepository::default();
-		let networks_clone = networks.clone();
-		cloned_repo.expect_get_all().return_once(|| networks_clone);
-		cloned_repo
+	mock_repo.expect_clone().return_once({
+		let networks = networks.clone();
+		move || {
+			let mut cloned_repo = MockNetworkRepository::default();
+			let networks_clone = networks.clone();
+			cloned_repo.expect_get_all().return_once(|| networks_clone);
+			cloned_repo
+		}
 	});
+
+	mock_repo
+		.expect_get()
+		.return_once(move |id| networks.get(id).cloned());
 
 	NetworkService::new_with_repository(mock_repo).unwrap()
 }

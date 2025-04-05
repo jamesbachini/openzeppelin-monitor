@@ -204,11 +204,13 @@ async fn main() -> Result<()> {
 				name, network, block_number
 			);
 			let client_pool = ClientPool::new();
-			let result = execute_monitor::<ClientPool>(
+			let result = execute_monitor::<ClientPool, NetworkRepository>(
 				&name,
 				&network,
 				&block_number,
 				active_monitors.clone(),
+				network_service.clone(),
+				filter_service.clone(),
 				client_pool,
 			)
 			.await;

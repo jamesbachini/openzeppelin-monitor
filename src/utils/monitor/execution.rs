@@ -1,6 +1,6 @@
 use crate::{
 	models::{BlockChainType, Monitor},
-	repositories::{NetworkRepository, NetworkService},
+	repositories::{NetworkRepositoryTrait, NetworkService},
 	services::{
 		blockchain::{BlockChainClient, ClientPoolTrait},
 		filter::FilterService,
@@ -8,7 +8,7 @@ use crate::{
 	utils::monitor::MonitorExecutionError,
 };
 use std::sync::Arc;
-
+use tokio::sync::Mutex;
 pub type ExecutionResult<T> = std::result::Result<T, MonitorExecutionError>;
 
 /// Executes a monitor against a specific block number on a blockchain network.
@@ -26,31 +26,15 @@ pub type ExecutionResult<T> = std::result::Result<T, MonitorExecutionError>;
 ///
 /// # Returns
 /// * `Result<String, ExecutionError>` - JSON string containing matches or error
-pub async fn execute_monitor<T: ClientPoolTrait>(
+pub async fn execute_monitor<T: ClientPoolTrait, N: NetworkRepositoryTrait>(
 	monitor_name: &str,
 	network_slug: &str,
 	block_number: &u64,
 	active_monitors: Vec<Monitor>,
+	network_service: Arc<Mutex<NetworkService<N>>>,
+	filter_service: Arc<FilterService>,
 	client_pool: T,
 ) -> ExecutionResult<String> {
-	// Initialize filter service
-	let filter_service = Arc::new(FilterService::new());
-	// Initialize network service
-	let network_repository = NetworkRepository::new(None).map_err(|e| {
-		MonitorExecutionError::execution_error(
-			format!("Failed to initialize network repository: {}", e),
-			None,
-			None,
-		)
-	})?;
-	let network_service = NetworkService::new_with_repository(network_repository).map_err(|e| {
-		MonitorExecutionError::execution_error(
-			format!("Failed to create network service: {}", e),
-			None,
-			None,
-		)
-	})?;
-
 	// Get monitor from active monitors
 	let monitor = active_monitors
 		.iter()
@@ -75,13 +59,17 @@ pub async fn execute_monitor<T: ClientPoolTrait>(
 	}
 
 	// Get network configuration
-	let network = network_service.get(network_slug).ok_or_else(|| {
-		MonitorExecutionError::not_found(
-			format!("Network '{}' not found", network_slug),
-			None,
-			None,
-		)
-	})?;
+	let network = network_service
+		.lock()
+		.await
+		.get(network_slug)
+		.ok_or_else(|| {
+			MonitorExecutionError::not_found(
+				format!("Network '{}' not found", network_slug),
+				None,
+				None,
+			)
+		})?;
 
 	let matches = match network.network_type {
 		BlockChainType::EVM => {
