@@ -2,7 +2,10 @@ use crate::integration::{
 	filters::common::load_test_data,
 	mocks::{MockClientPool, MockEvmClientTrait, MockStellarClientTrait},
 };
-use openzeppelin_monitor::{models::Monitor, utils::monitor::execution::execute_monitor};
+use openzeppelin_monitor::{
+	models::{EVMTransactionReceipt, Monitor},
+	utils::monitor::execution::execute_monitor,
+};
 use std::sync::Arc;
 
 fn create_test_monitor(
@@ -31,14 +34,19 @@ async fn test_execute_monitor_evm() {
 		.return_once(move |_| Ok(Some(test_data.blocks[0].clone())));
 
 	let receipts = test_data.receipts.clone();
-	let counter = std::sync::atomic::AtomicUsize::new(0);
+	let receipt_map: std::collections::HashMap<String, EVMTransactionReceipt> = receipts
+		.iter()
+		.map(|r| (format!("0x{:x}", r.transaction_hash), r.clone()))
+		.collect();
 
 	mock_client
 		.expect_get_transaction_receipt()
 		.times(3)
-		.returning(move |_| {
-			let current = counter.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-			Ok(receipts[current].clone())
+		.returning(move |hash| {
+			Ok(receipt_map
+				.get(&hash)
+				.cloned()
+				.unwrap_or_else(|| panic!("Receipt not found for hash: {}", hash)))
 		});
 
 	mock_pool
@@ -55,7 +63,6 @@ async fn test_execute_monitor_evm() {
 		mock_pool,
 	)
 	.await;
-
 	assert!(
 		result.is_ok(),
 		"Monitor execution failed: {:?}",
