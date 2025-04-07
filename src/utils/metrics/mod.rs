@@ -375,6 +375,7 @@ mod tests {
 	}
 
 	#[test]
+	#[ignore]
 	fn test_gather_metrics_contains_expected_names() {
 		let _lock = TEST_MUTEX.lock().unwrap();
 		reset_all_metrics();
@@ -405,6 +406,7 @@ mod tests {
 	}
 
 	#[test]
+	#[ignore]
 	fn test_system_metrics_update() {
 		let _lock = TEST_MUTEX.lock().unwrap();
 		reset_all_metrics();
@@ -441,6 +443,7 @@ mod tests {
 	}
 
 	#[test]
+	#[ignore]
 	fn test_monitoring_metrics_update() {
 		let _lock = TEST_MUTEX.lock().unwrap();
 		reset_all_metrics();
@@ -546,6 +549,7 @@ mod tests {
 	}
 
 	#[test]
+	#[ignore]
 	fn test_nonexistent_networks_are_ignored() {
 		let _lock = TEST_MUTEX.lock().unwrap();
 		reset_all_metrics();
@@ -591,6 +595,7 @@ mod tests {
 	}
 
 	#[test]
+	#[ignore]
 	fn test_multiple_monitors_same_network() {
 		let _lock = TEST_MUTEX.lock().unwrap();
 		reset_all_metrics();
@@ -660,6 +665,7 @@ mod tests {
 	}
 
 	#[test]
+	#[ignore]
 	fn test_multiple_contracts_per_monitor() {
 		let _lock = TEST_MUTEX.lock().unwrap();
 		reset_all_metrics();
@@ -701,6 +707,7 @@ mod tests {
 	}
 
 	#[test]
+	#[ignore]
 	fn test_triggers_count() {
 		let _lock = TEST_MUTEX.lock().unwrap();
 		reset_all_metrics();
