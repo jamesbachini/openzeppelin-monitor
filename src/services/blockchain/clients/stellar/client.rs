@@ -350,33 +350,4 @@ impl<T: Send + Sync + Clone + BlockchainTransport> BlockChainClient for StellarC
 		}
 		Ok(blocks)
 	}
-
-	/// Retrieves a block by number
-	///
-	/// # Errors
-	/// - Returns `BlockChainError::RequestError` if a block cannot be retrieved
-	#[instrument(skip(self), fields(block_number))]
-	async fn get_block_by_number(
-		&self,
-		block_number: &u64,
-	) -> Result<Option<BlockType>, anyhow::Error> {
-		let params = json!({
-			"startLedger": block_number,
-			"pagination": {
-				"limit": 1
-			}
-		});
-
-		let response = self
-			.stellar_client
-			.send_raw_request("getLedgers", Some(params))
-			.await
-			.with_context(|| format!("Failed to fetch ledger number {}", block_number))?;
-
-		let ledgers: Vec<StellarBlock> =
-			serde_json::from_value(response["result"]["ledgers"].clone())
-				.with_context(|| "Failed to parse ledger response")?;
-
-		Ok(Some(BlockType::Stellar(Box::new(ledgers[0].clone()))))
-	}
 }

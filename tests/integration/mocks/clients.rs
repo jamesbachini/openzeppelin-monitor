@@ -46,10 +46,6 @@ mock! {
 			start_block: u64,
 			end_block: Option<u64>,
 		) -> Result<Vec<BlockType>, anyhow::Error>;
-		async fn get_block_by_number(
-			&self,
-			block_number: &u64,
-		) -> Result<Option<BlockType>, anyhow::Error>;
 	}
 
 	#[async_trait]
@@ -90,10 +86,6 @@ mock! {
 			start_block: u64,
 			end_block: Option<u64>,
 		) -> Result<Vec<BlockType>, anyhow::Error>;
-		async fn get_block_by_number(
-			&self,
-			block_number: &u64,
-		) -> Result<Option<BlockType>, anyhow::Error>;
 	}
 
 	#[async_trait]

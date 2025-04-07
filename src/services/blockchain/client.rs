@@ -36,18 +36,6 @@ pub trait BlockChainClient: Send + Sync + Clone {
 		start_block: u64,
 		end_block: Option<u64>,
 	) -> Result<Vec<BlockType>, anyhow::Error>;
-
-	/// Retrieves a specific block by its number
-	///
-	/// # Arguments
-	/// * `block_number` - The block number to retrieve
-	///
-	/// # Returns
-	/// * `Result<Option<BlockType>, anyhow::Error>`
-	async fn get_block_by_number(
-		&self,
-		block_number: &u64,
-	) -> Result<Option<BlockType>, anyhow::Error>;
 }
 
 /// Defines the factory interface for creating block filters

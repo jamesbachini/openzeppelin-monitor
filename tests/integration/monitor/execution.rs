@@ -5,6 +5,7 @@ use crate::integration::{
 		MockStellarClientTrait,
 	},
 };
+use mockall::predicate;
 use openzeppelin_monitor::{
 	models::{BlockChainType, EVMTransactionReceipt},
 	repositories::NetworkService,
@@ -37,8 +38,9 @@ async fn test_execute_monitor_evm() {
 	let mut mock_client = MockEvmClientTrait::new();
 
 	mock_client
-		.expect_get_block_by_number()
-		.return_once(move |_| Ok(Some(test_data.blocks[0].clone())));
+		.expect_get_blocks()
+		.with(predicate::eq(21305050u64), predicate::eq(None))
+		.return_once(move |_, _| Ok(test_data.blocks.clone()));
 
 	let receipts = test_data.receipts.clone();
 	let receipt_map: std::collections::HashMap<String, EVMTransactionReceipt> = receipts
@@ -120,8 +122,9 @@ async fn test_execute_monitor_evm_wrong_block_number() {
 	let mut mock_client = MockEvmClientTrait::new();
 
 	mock_client
-		.expect_get_block_by_number()
-		.return_once(move |_| Ok(None));
+		.expect_get_blocks()
+		.with(predicate::eq(1u64), predicate::eq(None))
+		.return_once(move |_, _| Ok(vec![]));
 
 	mock_pool
 		.expect_get_evm_client()
@@ -151,8 +154,9 @@ async fn test_execute_monitor_evm_failed_to_get_block_by_number() {
 	let mut mock_client = MockEvmClientTrait::new();
 
 	mock_client
-		.expect_get_block_by_number()
-		.return_once(move |_| Err(anyhow::anyhow!("Failed to get block by number")));
+		.expect_get_blocks()
+		.with(predicate::eq(1u64), predicate::eq(None))
+		.return_once(move |_, _| Err(anyhow::anyhow!("Failed to get block by number")));
 
 	mock_pool
 		.expect_get_evm_client()
@@ -209,8 +213,9 @@ async fn test_execute_monitor_stellar() {
 	let mut mock_client = MockStellarClientTrait::new();
 
 	mock_client
-		.expect_get_block_by_number()
-		.return_once(move |_| Ok(Some(test_data.blocks[0].clone())));
+		.expect_get_blocks()
+		.with(predicate::eq(172627u64), predicate::eq(None))
+		.return_once(move |_, _| Ok(test_data.blocks.clone()));
 	mock_client
 		.expect_get_transactions()
 		.return_once(move |_, _| Ok(test_data.stellar_transactions.clone()));
@@ -279,8 +284,9 @@ async fn test_execute_monitor_failed_to_get_block() {
 	let mut mock_client = MockStellarClientTrait::new();
 
 	mock_client
-		.expect_get_block_by_number()
-		.return_once(move |_| Ok(None));
+		.expect_get_blocks()
+		.with(predicate::eq(172627u64), predicate::eq(None))
+		.return_once(move |_, _| Ok(vec![]));
 
 	mock_pool
 		.expect_get_stellar_client()
@@ -336,8 +342,9 @@ async fn test_execute_monitor_failed_to_get_block_by_number() {
 	let mut mock_client = MockStellarClientTrait::new();
 
 	mock_client
-		.expect_get_block_by_number()
-		.return_once(move |_| Err(anyhow::anyhow!("Failed to get block by number")));
+		.expect_get_blocks()
+		.with(predicate::eq(172627u64), predicate::eq(None))
+		.return_once(move |_, _| Err(anyhow::anyhow!("Failed to get block by number")));
 
 	mock_pool
 		.expect_get_stellar_client()

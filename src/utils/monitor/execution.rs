@@ -84,18 +84,15 @@ pub async fn execute_monitor<T: ClientPoolTrait, N: NetworkRepositoryTrait>(
 				)
 			})?;
 
-			let block = client
-				.get_block_by_number(block_number)
-				.await
-				.map_err(|e| {
-					MonitorExecutionError::execution_error(
-						format!("Failed to get block {}: {}", block_number, e),
-						None,
-						None,
-					)
-				})?;
+			let blocks = client.get_blocks(*block_number, None).await.map_err(|e| {
+				MonitorExecutionError::execution_error(
+					format!("Failed to get block {}: {}", block_number, e),
+					None,
+					None,
+				)
+			})?;
 
-			let block = block.ok_or_else(|| {
+			let block = blocks.first().ok_or_else(|| {
 				MonitorExecutionError::execution_error(
 					format!("Block {} not found", block_number),
 					None,
@@ -104,7 +101,7 @@ pub async fn execute_monitor<T: ClientPoolTrait, N: NetworkRepositoryTrait>(
 			})?;
 
 			filter_service
-				.filter_block(&*client, &network, &block, &[monitor.clone()])
+				.filter_block(&*client, &network, block, &[monitor.clone()])
 				.await
 				.map_err(|e| {
 					MonitorExecutionError::execution_error(
@@ -127,18 +124,15 @@ pub async fn execute_monitor<T: ClientPoolTrait, N: NetworkRepositoryTrait>(
 					)
 				})?;
 
-			let block = client
-				.get_block_by_number(block_number)
-				.await
-				.map_err(|e| {
-					MonitorExecutionError::execution_error(
-						format!("Failed to get block {}: {}", block_number, e),
-						None,
-						None,
-					)
-				})?;
+			let blocks = client.get_blocks(*block_number, None).await.map_err(|e| {
+				MonitorExecutionError::execution_error(
+					format!("Failed to get block {}: {}", block_number, e),
+					None,
+					None,
+				)
+			})?;
 
-			let block = block.ok_or_else(|| {
+			let block = blocks.first().ok_or_else(|| {
 				MonitorExecutionError::execution_error(
 					format!("Block {} not found", block_number),
 					None,
@@ -147,7 +141,7 @@ pub async fn execute_monitor<T: ClientPoolTrait, N: NetworkRepositoryTrait>(
 			})?;
 
 			filter_service
-				.filter_block(&*client, &network, &block, &[monitor.clone()])
+				.filter_block(&*client, &network, block, &[monitor.clone()])
 				.await
 				.map_err(|e| {
 					MonitorExecutionError::execution_error(
