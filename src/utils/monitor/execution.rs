@@ -23,6 +23,9 @@ pub type ExecutionResult<T> = std::result::Result<T, MonitorExecutionError>;
 /// * `network_slug` - The network identifier to run the monitor against
 /// * `block_number` - The specific block number to analyze
 /// * `active_monitors` - List of currently active monitors
+/// * `network_service` - The network service to use
+/// * `filter_service` - The filter service to use
+/// * `client_pool` - The client pool to use
 ///
 /// # Returns
 /// * `Result<String, ExecutionError>` - JSON string containing matches or error
