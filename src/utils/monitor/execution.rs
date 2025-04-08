@@ -1,3 +1,6 @@
+//! Execution monitor module
+//!
+//! This module provides functionality to execute monitors against specific block numbers on blockchain networks.
 use crate::{
 	bootstrap::has_active_monitors,
 	models::BlockChainType,
