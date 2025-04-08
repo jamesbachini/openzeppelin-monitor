@@ -1,14 +1,20 @@
 use crate::{
-	models::{BlockChainType, Monitor},
-	repositories::{NetworkRepositoryTrait, NetworkService},
+	bootstrap::has_active_monitors,
+	models::BlockChainType,
+	repositories::{
+		MonitorRepositoryTrait, MonitorService, NetworkRepositoryTrait, NetworkService,
+		TriggerRepositoryTrait,
+	},
 	services::{
 		blockchain::{BlockChainClient, ClientPoolTrait},
 		filter::FilterService,
 	},
 	utils::monitor::MonitorExecutionError,
 };
+use std::path::Path;
 use std::sync::Arc;
 use tokio::sync::Mutex;
+
 pub type ExecutionResult<T> = std::result::Result<T, MonitorExecutionError>;
 
 /// Executes a monitor against a specific block number on a blockchain network.
@@ -29,144 +35,161 @@ pub type ExecutionResult<T> = std::result::Result<T, MonitorExecutionError>;
 ///
 /// # Returns
 /// * `Result<String, ExecutionError>` - JSON string containing matches or error
-pub async fn execute_monitor<T: ClientPoolTrait, N: NetworkRepositoryTrait>(
-	monitor_name: &str,
-	network_slug: &str,
-	block_number: &u64,
-	active_monitors: Vec<Monitor>,
+pub async fn execute_monitor<
+	T: ClientPoolTrait,
+	M: MonitorRepositoryTrait<N, TR>,
+	N: NetworkRepositoryTrait,
+	TR: TriggerRepositoryTrait,
+>(
+	monitor_path: &str,
+	network_slug: Option<&String>,
+	block_number: Option<&u64>,
+	monitor_service: Arc<Mutex<MonitorService<M, N, TR>>>,
 	network_service: Arc<Mutex<NetworkService<N>>>,
 	filter_service: Arc<FilterService>,
 	client_pool: T,
 ) -> ExecutionResult<String> {
-	// Get monitor from active monitors
-	let monitor = active_monitors
-		.iter()
-		.find(|m| m.name == monitor_name)
-		.ok_or_else(|| {
-			MonitorExecutionError::not_found(
-				format!("Monitor '{}' not found", monitor_name),
-				None,
-				None,
-			)
-		})?;
-
-	if !monitor.networks.contains(&network_slug.to_string()) {
-		return Err(MonitorExecutionError::not_found(
-			format!(
-				"Network '{}' not configured for monitor '{}'",
-				network_slug, monitor_name
-			),
-			None,
-			None,
-		));
-	}
-
-	// Get network configuration
-	let network = network_service
+	let monitor = monitor_service
 		.lock()
 		.await
-		.get(network_slug)
-		.ok_or_else(|| {
-			MonitorExecutionError::not_found(
-				format!("Network '{}' not found", network_slug),
-				None,
-				None,
-			)
-		})?;
+		.load_from_path(Some(Path::new(monitor_path)), None, None)
+		.map_err(|e| MonitorExecutionError::execution_error(e.to_string(), None, None))?;
 
-	let matches = match network.network_type {
-		BlockChainType::EVM => {
-			let client = client_pool.get_evm_client(&network).await.map_err(|e| {
+	let networks_with_monitors = if let Some(network_slug) = network_slug {
+		let network = network_service
+			.lock()
+			.await
+			.get(network_slug)
+			.ok_or_else(|| {
 				MonitorExecutionError::execution_error(
-					format!("Failed to get EVM client: {}", e),
+					format!("Network '{}' not found", network_slug),
 					None,
 					None,
 				)
 			})?;
+		vec![network.clone()]
+	} else {
+		network_service
+			.lock()
+			.await
+			.get_all()
+			.values()
+			.filter(|network| has_active_monitors(&[monitor.clone()], &network.slug))
+			.cloned()
+			.collect()
+	};
 
-			let blocks = client.get_blocks(*block_number, None).await.map_err(|e| {
-				MonitorExecutionError::execution_error(
-					format!("Failed to get block {}: {}", block_number, e),
-					None,
-					None,
-				)
-			})?;
-
-			let block = blocks.first().ok_or_else(|| {
-				MonitorExecutionError::execution_error(
-					format!("Block {} not found", block_number),
-					None,
-					None,
-				)
-			})?;
-
-			filter_service
-				.filter_block(&*client, &network, block, &[monitor.clone()])
-				.await
-				.map_err(|e| {
+	let mut all_matches = Vec::new();
+	for network in networks_with_monitors {
+		let matches = match network.network_type {
+			BlockChainType::EVM => {
+				let client = client_pool.get_evm_client(&network).await.map_err(|e| {
 					MonitorExecutionError::execution_error(
-						format!("Failed to filter block: {}", e),
+						format!("Failed to get EVM client: {}", e),
 						None,
 						None,
 					)
-				})?
-		}
+				})?;
+				// If block number is not provided, get the latest block number
+				let block_number = match block_number {
+					Some(block_number) => *block_number,
+					None => client.get_latest_block_number().await.map_err(|e| {
+						MonitorExecutionError::execution_error(e.to_string(), None, None)
+					})?,
+				};
 
-		BlockChainType::Stellar => {
-			let client = client_pool
-				.get_stellar_client(&network)
-				.await
-				.map_err(|e| {
+				let blocks = client.get_blocks(block_number, None).await.map_err(|e| {
 					MonitorExecutionError::execution_error(
-						format!("Failed to get Stellar client: {}", e),
+						format!("Failed to get block {}: {}", block_number, e),
 						None,
 						None,
 					)
 				})?;
 
-			let blocks = client.get_blocks(*block_number, None).await.map_err(|e| {
-				MonitorExecutionError::execution_error(
-					format!("Failed to get block {}: {}", block_number, e),
-					None,
-					None,
-				)
-			})?;
-
-			let block = blocks.first().ok_or_else(|| {
-				MonitorExecutionError::execution_error(
-					format!("Block {} not found", block_number),
-					None,
-					None,
-				)
-			})?;
-
-			filter_service
-				.filter_block(&*client, &network, block, &[monitor.clone()])
-				.await
-				.map_err(|e| {
+				let block = blocks.first().ok_or_else(|| {
 					MonitorExecutionError::execution_error(
-						format!("Failed to filter block: {}", e),
+						format!("Block {} not found", block_number),
 						None,
 						None,
 					)
-				})?
-		}
-		BlockChainType::Midnight => {
-			return Err(MonitorExecutionError::execution_error(
-				"Midnight network not supported",
-				None,
-				None,
-			))
-		}
-		BlockChainType::Solana => {
-			return Err(MonitorExecutionError::execution_error(
-				"Solana network not supported",
-				None,
-				None,
-			))
-		}
-	};
+				})?;
 
-	let json_matches = serde_json::to_string(&matches).unwrap();
+				filter_service
+					.filter_block(&*client, &network, block, &[monitor.clone()])
+					.await
+					.map_err(|e| {
+						MonitorExecutionError::execution_error(
+							format!("Failed to filter block: {}", e),
+							None,
+							None,
+						)
+					})?
+			}
+			BlockChainType::Stellar => {
+				let client = client_pool
+					.get_stellar_client(&network)
+					.await
+					.map_err(|e| {
+						MonitorExecutionError::execution_error(
+							format!("Failed to get Stellar client: {}", e),
+							None,
+							None,
+						)
+					})?;
+
+				// If block number is not provided, get the latest block number
+				let block_number = match block_number {
+					Some(block_number) => *block_number,
+					None => client.get_latest_block_number().await.map_err(|e| {
+						MonitorExecutionError::execution_error(e.to_string(), None, None)
+					})?,
+				};
+
+				let blocks = client.get_blocks(block_number, None).await.map_err(|e| {
+					MonitorExecutionError::execution_error(
+						format!("Failed to get block {}: {}", block_number, e),
+						None,
+						None,
+					)
+				})?;
+
+				let block = blocks.first().ok_or_else(|| {
+					MonitorExecutionError::execution_error(
+						format!("Block {} not found", block_number),
+						None,
+						None,
+					)
+				})?;
+
+				filter_service
+					.filter_block(&*client, &network, block, &[monitor.clone()])
+					.await
+					.map_err(|e| {
+						MonitorExecutionError::execution_error(
+							format!("Failed to filter block: {}", e),
+							None,
+							None,
+						)
+					})?
+			}
+			BlockChainType::Midnight => {
+				return Err(MonitorExecutionError::execution_error(
+					"Midnight network not supported",
+					None,
+					None,
+				))
+			}
+			BlockChainType::Solana => {
+				return Err(MonitorExecutionError::execution_error(
+					"Solana network not supported",
+					None,
+					None,
+				))
+			}
+		};
+		all_matches.extend(matches);
+	}
+
+	let json_matches = serde_json::to_string(&all_matches).unwrap();
 	Ok(json_matches)
 }

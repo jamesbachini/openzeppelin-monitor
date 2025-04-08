@@ -190,6 +190,11 @@ pub fn setup_monitor_service(
 		.expect_get_all()
 		.return_once(move || monitors_clone.clone());
 
+	let monitors_for_load = monitors.clone();
+	mock_repo
+		.expect_load_from_path()
+		.return_once(move |_, _, _| Ok(monitors_for_load.get("monitor").unwrap().clone()));
+
 	mock_repo.expect_clone().return_once(move || {
 		let mut cloned_repo = MockMonitorRepository::default();
 		let monitors_clone = monitors.clone();

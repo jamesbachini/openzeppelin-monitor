@@ -101,10 +101,10 @@ async fn main() -> Result<()> {
 				.action(clap::ArgAction::SetTrue),
 		)
 		.arg(
-			Arg::new("monitorName")
-				.long("monitorName")
-				.help("Monitor name to execute the monitor for")
-				.value_name("MONITOR_NAME"),
+			Arg::new("monitorPath")
+				.long("monitorPath")
+				.help("Path to the monitor to execute")
+				.value_name("MONITOR_PATH"),
 		)
 		.arg(
 			Arg::new("network")
@@ -165,11 +165,10 @@ async fn main() -> Result<()> {
 		TriggerRepository,
 	>(None, None, None)?;
 
-	let monitor_name = matches
-		.get_one::<String>("monitorName")
+	let monitor_path = matches
+		.get_one::<String>("monitorPath")
 		.map(|s| s.to_string());
 	let network_slug = matches.get_one::<String>("network").map(|s| s.to_string());
-	// Check if the user wants to execute the monitor only for a specific block number or a hash
 	let block_number = matches
 		.get_one::<String>("block")
 		.map(|s| {
@@ -180,49 +179,39 @@ async fn main() -> Result<()> {
 		})
 		.transpose()?;
 
-	// Check if any specific execution parameters are present
-	let monitor_test_execution =
-		monitor_name.is_some() || network_slug.is_some() || block_number.is_some();
-
-	if monitor_test_execution {
-		// If any parameter is present, enforce all required parameters
-		if network_slug.is_none() || monitor_name.is_none() {
-			error!(
-				"Network slug and monitor name are required when executing a monitor for a specific block"
-			);
-			return Ok(());
-		} else if block_number.is_none() {
-			error!("Block number is required when executing a monitor for a specific block");
+	if let Some(path) = monitor_path {
+		if block_number.is_some() && network_slug.is_none() {
+			error!("Network name is required when executing a monitor for a specific block");
 			return Ok(());
 		}
 
-		if let (Some(name), Some(network), Some(block_number)) =
-			(monitor_name, network_slug, block_number)
-		{
-			info!(
-				"Executing monitor '{}' for network '{}' and block number: {}",
-				name, network, block_number
-			);
-			let client_pool = ClientPool::new();
-			let result = execute_monitor::<ClientPool, NetworkRepository>(
-				&name,
-				&network,
-				&block_number,
-				active_monitors.clone(),
-				network_service.clone(),
-				filter_service.clone(),
-				client_pool,
-			)
-			.await;
-			match result {
-				Ok(matches) => {
-					info!("Execution result: {:?}", matches);
-					return Ok(());
-				}
-				Err(e) => {
-					error!("Failed to execute monitor: {}", e);
-					return Ok(());
-				}
+		// MonitorService<MockMonitorRepository<MockNetworkRepository, MockTriggerRepository>, MockNetworkRepository, MockTriggerRepository>
+
+		info!("Executing monitor from path: '{}'", path);
+		let client_pool = ClientPool::new();
+		let result = execute_monitor::<
+			ClientPool,
+			MonitorRepository<NetworkRepository, TriggerRepository>,
+			NetworkRepository,
+			TriggerRepository,
+		>(
+			&path,
+			network_slug.as_ref(),
+			block_number.as_ref(),
+			monitor_service.clone(),
+			network_service.clone(),
+			filter_service.clone(),
+			client_pool,
+		)
+		.await;
+		match result {
+			Ok(matches) => {
+				info!("Execution result: {:?}", matches);
+				return Ok(());
+			}
+			Err(e) => {
+				error!("Failed to execute monitor: {}", e);
+				return Ok(());
 			}
 		}
 	}
