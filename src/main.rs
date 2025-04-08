@@ -185,8 +185,6 @@ async fn main() -> Result<()> {
 			return Ok(());
 		}
 
-		// MonitorService<MockMonitorRepository<MockNetworkRepository, MockTriggerRepository>, MockNetworkRepository, MockTriggerRepository>
-
 		info!("Executing monitor from path: '{}'", path);
 		let client_pool = ClientPool::new();
 		let result = execute_monitor::<
