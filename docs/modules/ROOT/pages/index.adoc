@@ -354,11 +354,11 @@ This table lists the environment variables and their default values.
 ----
 # EVM Configuration
 cp config/monitors/evm_transfer_usdc.json.example config/monitors/evm_transfer_usdc.json
-cp config/networks/ethereum_mainnet.json.example config/networks/ethereum_mainnet.json
+cp config/networks/examples/ethereum_mainnet.json.example config/networks/ethereum_mainnet.json
 
 # Stellar Configuration
 cp config/monitors/stellar_transfer_usdc.json.example config/monitors/stellar_transfer_usdc.json
-cp config/networks/stellar_mainnet.json.example config/networks/stellar_mainnet.json
+cp config/networks/examples/stellar_mainnet.json.example config/networks/stellar_mainnet.json
 
 # Notification Configuration
 cp config/triggers/email_notifications.json.example config/triggers/email_notifications.json

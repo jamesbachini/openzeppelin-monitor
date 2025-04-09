@@ -142,10 +142,10 @@ Create the Ethereum mainnet network configuration:
 
 [source,bash]
 ----
-cp config/networks/ethereum_mainnet.json.example config/networks/ethereum_mainnet.json
+cp config/networks/examples/ethereum_mainnet.json.example config/networks/ethereum_mainnet.json
 ----
 
-The link:https://github.com/OpenZeppelin/openzeppelin-monitor/blob/main/config/networks/ethereum_mainnet.json.example[default configuration^] should work, but you may want to update the RPC URL to your preferred provider.
+The link:https://github.com/OpenZeppelin/openzeppelin-monitor/blob/main/config/examples/networks/ethereum_mainnet.json.example[default configuration^] should work, but you may want to update the RPC URL to your preferred provider.
 
 [source,json]
 ----
@@ -349,10 +349,10 @@ Create the Stellar mainnet network configuration:
 
 [source,bash]
 ----
-cp config/networks/stellar_mainnet.json.example config/networks/stellar_mainnet.json
+cp config/networks/examples/stellar_mainnet.json.example config/networks/stellar_mainnet.json
 ----
 
-The link:https://github.com/OpenZeppelin/openzeppelin-monitor/blob/main/config/networks/stellar_mainnet.json.example[default configuration^] should work, but you may want to update the RPC URL to your preferred provider.
+The link:https://github.com/OpenZeppelin/openzeppelin-monitor/blob/main/config/networks/examples/stellar_mainnet.json.example[default configuration^] should work, but you may want to update the RPC URL to your preferred provider.
 
 [source,json]
 ----

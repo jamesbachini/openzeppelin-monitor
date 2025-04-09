@@ -28,15 +28,32 @@ for u in `echo ${1} | jq '.rpc_urls[] | .url' | tr -d '"'`
 done
 }
 
+# parsing arguments (if any)
+while getopts :hf: opt; do
+    case ${opt} in
+        h)
+	    echo "Usage: $0 [-h | -f <directory to check> ]"
+	    exit 0
+	    ;;
+        f)
+            FOLDER_PATH=${OPTARG}
+	    ;;
+	:)
+	    echo "Option -${OPTARG} requires an argument"
+	    exit 1
+	    ;;
+    esac
+done	
+
 if [ -d "$FOLDER_PATH" ]; then
-    for file in "$FOLDER_PATH"/*.json.example; do
+    for file in "$FOLDER_PATH"/*.json*; do
         if [ -f "$file" ]; then
             content=$(cat "$file")
             json_array+=("$content")
         fi
     done
 
-    echo "Loaded ${#json_array[@]} JSON files."
+    echo "Loaded ${#json_array[@]} JSON files from ${FOLDER_PATH}"
 
     for i in "${json_array[@]}"
     do
