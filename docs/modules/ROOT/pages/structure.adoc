@@ -66,6 +66,11 @@ Contains JSON configuration files for:
 * Filter configurations (`filters/`)
 ** Match filter scripts
 
+[TIP]
+====
+The `examples/config/` directory contains example JSON configuration files for each (network, monitor, trigger and filters).
+====
+
 === `data/` Directory:
 Runtime data storage:
 
