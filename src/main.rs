@@ -30,10 +30,13 @@ use crate::{
 		Result,
 	},
 	models::Network,
-	repositories::{MonitorRepository, NetworkRepository, TriggerRepository},
+	repositories::{
+		MonitorRepository, MonitorService, NetworkRepository, NetworkService, TriggerRepository,
+	},
 	services::{
 		blockchain::{ClientPool, ClientPoolTrait},
 		blockwatcher::{BlockTracker, BlockTrackerTrait, BlockWatcherService, FileBlockStorage},
+		filter::FilterService,
 	},
 	utils::{
 		logging::setup_logging, metrics::server::create_metrics_server,
@@ -47,9 +50,52 @@ use models::BlockChainType;
 use services::trigger::TriggerExecutionServiceTrait;
 use std::env::{set_var, var};
 use std::sync::Arc;
-use tokio::sync::watch;
+use tokio::sync::{watch, Mutex};
 use tokio_cron_scheduler::JobScheduler;
 use tracing::{error, info};
+
+type MonitorServiceType = MonitorService<
+	MonitorRepository<NetworkRepository, TriggerRepository>,
+	NetworkRepository,
+	TriggerRepository,
+>;
+
+async fn test_monitor_execution(
+	path: String,
+	network_slug: Option<String>,
+	block_number: Option<u64>,
+	monitor_service: Arc<Mutex<MonitorServiceType>>,
+	network_service: Arc<Mutex<NetworkService<NetworkRepository>>>,
+	filter_service: Arc<FilterService>,
+) -> Result<()> {
+	if block_number.is_some() && network_slug.is_none() {
+		error!("Network name is required when executing a monitor for a specific block");
+		return Ok(());
+	}
+
+	info!("Executing monitor from path: '{}'", path);
+	let client_pool = ClientPool::new();
+	let result = execute_monitor(
+		&path,
+		network_slug.as_ref(),
+		block_number.as_ref(),
+		monitor_service.clone(),
+		network_service.clone(),
+		filter_service.clone(),
+		client_pool,
+	)
+	.await;
+	match result {
+		Ok(matches) => {
+			info!("Execution result: {:?}", matches);
+			Ok(())
+		}
+		Err(e) => {
+			error!("Failed to execute monitor: {}", e);
+			Ok(())
+		}
+	}
+}
 
 /// Main entry point for the blockchain monitoring service.
 ///
@@ -165,6 +211,7 @@ async fn main() -> Result<()> {
 		TriggerRepository,
 	>(None, None, None)?;
 
+	// Read CLI arguments to determine if we should test monitor execution
 	let monitor_path = matches
 		.get_one::<String>("monitorPath")
 		.map(|s| s.to_string());
@@ -179,39 +226,18 @@ async fn main() -> Result<()> {
 		})
 		.transpose()?;
 
-	if let Some(path) = monitor_path {
-		if block_number.is_some() && network_slug.is_none() {
-			error!("Network name is required when executing a monitor for a specific block");
-			return Ok(());
-		}
-
-		info!("Executing monitor from path: '{}'", path);
-		let client_pool = ClientPool::new();
-		let result = execute_monitor::<
-			ClientPool,
-			MonitorRepository<NetworkRepository, TriggerRepository>,
-			NetworkRepository,
-			TriggerRepository,
-		>(
-			&path,
-			network_slug.as_ref(),
-			block_number.as_ref(),
-			monitor_service.clone(),
-			network_service.clone(),
-			filter_service.clone(),
-			client_pool,
+	let should_test_monitor_execution = monitor_path.is_some();
+	// If monitor path is provided, test monitor execution else start the service
+	if should_test_monitor_execution {
+		return test_monitor_execution(
+			monitor_path.unwrap(),
+			network_slug,
+			block_number,
+			monitor_service,
+			network_service,
+			filter_service,
 		)
 		.await;
-		match result {
-			Ok(matches) => {
-				info!("Execution result: {:?}", matches);
-				return Ok(());
-			}
-			Err(e) => {
-				error!("Failed to execute monitor: {}", e);
-				return Ok(());
-			}
-		}
 	}
 
 	// Check if metrics should be enabled from either CLI flag or env var

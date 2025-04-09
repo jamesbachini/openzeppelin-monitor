@@ -58,7 +58,7 @@ pub async fn execute_monitor<
 		.load_from_path(Some(Path::new(monitor_path)), None, None)
 		.map_err(|e| MonitorExecutionError::execution_error(e.to_string(), None, None))?;
 
-	let networks_with_monitors = if let Some(network_slug) = network_slug {
+	let networks_for_monitor = if let Some(network_slug) = network_slug {
 		let network = network_service
 			.lock()
 			.await
@@ -83,7 +83,7 @@ pub async fn execute_monitor<
 	};
 
 	let mut all_matches = Vec::new();
-	for network in networks_with_monitors {
+	for network in networks_for_monitor {
 		let matches = match network.network_type {
 			BlockChainType::EVM => {
 				let client = client_pool.get_evm_client(&network).await.map_err(|e| {

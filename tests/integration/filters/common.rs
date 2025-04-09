@@ -8,7 +8,9 @@ use openzeppelin_monitor::{
 		BlockType, EVMTransactionReceipt, Monitor, Network, StellarEvent, StellarTransaction,
 		Trigger,
 	},
-	repositories::{MonitorService, NetworkService, TriggerRepositoryTrait, TriggerService},
+	repositories::{
+		MonitorService, NetworkService, RepositoryError, TriggerRepositoryTrait, TriggerService,
+	},
 	services::notification::NotificationService,
 };
 use std::{collections::HashMap, fs};
@@ -193,7 +195,14 @@ pub fn setup_monitor_service(
 	let monitors_for_load = monitors.clone();
 	mock_repo
 		.expect_load_from_path()
-		.return_once(move |_, _, _| Ok(monitors_for_load.get("monitor").unwrap().clone()));
+		.return_once(move |path, _, _| match path {
+			Some(_) => Ok(monitors_for_load.get("monitor").unwrap().clone()),
+			None => Err(RepositoryError::load_error(
+				"Failed to load monitors",
+				None,
+				None,
+			)),
+		});
 
 	mock_repo.expect_clone().return_once(move || {
 		let mut cloned_repo = MockMonitorRepository::default();

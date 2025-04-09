@@ -1,5 +1,7 @@
 use crate::integration::{
-	filters::common::{load_test_data, setup_monitor_service, setup_network_service},
+	filters::common::{
+		load_test_data, setup_monitor_service, setup_network_service, setup_trigger_service,
+	},
 	mocks::{
 		create_test_network, MockClientPool, MockEvmClientTrait, MockNetworkRepository,
 		MockStellarClientTrait,
@@ -7,13 +9,18 @@ use crate::integration::{
 };
 use mockall::predicate;
 use openzeppelin_monitor::{
-	models::{BlockChainType, EVMTransactionReceipt},
+	models::{
+		BlockChainType, EVMTransactionReceipt, Monitor, NotificationMessage, Trigger, TriggerType,
+		TriggerTypeConfig,
+	},
 	repositories::NetworkService,
 	services::filter::FilterService,
 	utils::monitor::execution::execute_monitor,
 };
 use std::collections::HashMap;
+use std::fs;
 use std::sync::Arc;
+use tempfile::TempDir;
 use tokio::sync::Mutex;
 
 fn setup_mocked_networks(
@@ -27,6 +34,54 @@ fn setup_mocked_networks(
 		create_test_network(network_name, network_slug, block_chain_type),
 	);
 	setup_network_service(mocked_networks)
+}
+
+// Helper to create a valid monitor JSON file
+fn create_test_monitor_file(dir: &TempDir, name: &str) -> std::path::PathBuf {
+	let monitor_path = dir.path().join(format!("{}.json", name));
+	let monitor_json = serde_json::json!({
+		"name": name,
+		"networks": ["ethereum_mainnet"],
+		"triggers": ["test-trigger"],
+		"match_conditions": {},
+		"trigger_conditions": []
+	});
+	fs::write(&monitor_path, monitor_json.to_string()).unwrap();
+	monitor_path
+}
+
+fn create_test_trigger(name: &str) -> Trigger {
+	Trigger {
+		name: name.to_string(),
+		trigger_type: TriggerType::Email,
+		config: TriggerTypeConfig::Email {
+			host: "smtp.example.com".to_string(),
+			port: Some(465),
+			username: "user@example.com".to_string(),
+			password: "password123".to_string(),
+			message: NotificationMessage {
+				title: "Alert".to_string(),
+				body: "Something happened!".to_string(),
+			},
+			sender: "alerts@example.com".parse().unwrap(),
+			recipients: vec!["user@example.com".parse().unwrap()],
+		},
+	}
+}
+
+fn create_test_monitor(
+	name: &str,
+	networks: Vec<&str>,
+	paused: bool,
+	triggers: Vec<&str>,
+) -> Monitor {
+	Monitor {
+		name: name.to_string(),
+		networks: networks.into_iter().map(|s| s.to_string()).collect(),
+		paused,
+		triggers: triggers.into_iter().map(|s| s.to_string()).collect(),
+		..Default::default()
+	}
 }
 
 #[tokio::test]
@@ -406,5 +461,75 @@ async fn test_execute_monitor_get_latest_block_number_failed() {
 		mock_pool,
 	)
 	.await;
+	assert!(result.is_err());
+}
+
+#[test]
+fn test_load_from_path_with_services() {
+	// Setup temporary directory and files
+	let temp_dir = TempDir::new().unwrap();
+	let monitor_path = create_test_monitor_file(&temp_dir, "monitor");
+
+	let mock_network_service =
+		setup_mocked_networks("Ethereum", "ethereum_mainnet", BlockChainType::EVM);
+
+	let mut mocked_triggers = HashMap::new();
+	mocked_triggers.insert("test-trigger".to_string(), create_test_trigger("test"));
+	let mock_trigger_service = setup_trigger_service(mocked_triggers);
+
+	let mut mocked_monitors = HashMap::new();
+	mocked_monitors.insert(
+		"monitor".to_string(),
+		create_test_monitor(
+			"monitor",
+			vec!["ethereum_mainnet"],
+			false,
+			vec!["test-trigger"],
+		),
+	);
+
+	let mock_monitor_service = setup_monitor_service(mocked_monitors);
+
+	let result = mock_monitor_service.load_from_path(
+		Some(&monitor_path),
+		Some(mock_network_service),
+		Some(mock_trigger_service),
+	);
+
+	assert!(result.is_ok());
+	let monitor = result.unwrap();
+	assert_eq!(monitor.name, "monitor");
+	assert!(monitor.networks.contains(&"ethereum_mainnet".to_string()));
+	assert!(monitor.triggers.contains(&"test-trigger".to_string()));
+}
+
+#[test]
+fn test_load_from_path_with_services_error() {
+	let mock_network_service =
+		setup_mocked_networks("Ethereum", "ethereum_mainnet", BlockChainType::EVM);
+
+	let mut mocked_triggers = HashMap::new();
+	mocked_triggers.insert("test-trigger".to_string(), create_test_trigger("test"));
+	let mock_trigger_service = setup_trigger_service(mocked_triggers);
+
+	let mut mocked_monitors = HashMap::new();
+	mocked_monitors.insert(
+		"monitor".to_string(),
+		create_test_monitor(
+			"monitor",
+			vec!["ethereum_mainnet"],
+			false,
+			vec!["test-trigger"],
+		),
+	);
+
+	let mock_monitor_service = setup_monitor_service(mocked_monitors);
+
+	let result = mock_monitor_service.load_from_path(
+		None,
+		Some(mock_network_service),
+		Some(mock_trigger_service),
+	);
+
 	assert!(result.is_err());
 }
