@@ -87,11 +87,12 @@ async fn test_monitor_execution(
 	.await;
 	match result {
 		Ok(matches) => {
-			info!("Execution result: {:?}", matches);
+			info!("Monitor execution completed");
+			println!("Execution result: {:?}", matches);
 			Ok(())
 		}
 		Err(e) => {
-			error!("Failed to execute monitor: {}", e);
+			error!("Monitor execution failed: {}", e);
 			Ok(())
 		}
 	}
