@@ -132,7 +132,7 @@ docker compose --profile metrics down
 docker compose logs -f
 ----
 
-== Examples:
+== Examples
 
 === Monitoring USDC transfers (EVM):
 
@@ -338,8 +338,8 @@ The monitor will now:
 
 * Adjust the transfer threshold by modifying the `expression` value.
 * Monitor additional ERC20 tokens by creating new monitor configurations.
+* xref:quickstart.adoc#testing_the_monitor[Test the Monitor] configuration against a block number
 * Explore other examples in the link:https://github.com/OpenZeppelin/openzeppelin-monitor/tree/main/config/monitors[`config/monitors` directory].
-
 
 === Monitoring Dex Swaps (Stellar):
 
@@ -484,41 +484,54 @@ The monitor will now:
 2. Watch for large dex swaps.
 3. Send notifications via Slack when large swaps occur.
 
-**Testing the monitor**
-
-You can test the monitor in two different ways:
-
-1. **Run monitor for latest blocks on all networks configured for the monitor**:
-+
-[source,bash]
-----
-cargo run -- --monitorPath="config/monitor/evm_transfer_usdc.json"
-----
-+
-This command will:
-* Execute the monitor named "Large Transfer of USDC Token"
-* Run it against all networks specified in the monitor configuration
-* Process the latest block for each network
-
-2. **Run monitor for a specific block number**:
-+
-[source,bash]
-----
-cargo run -- --monitorPath="config/monitor/evm_transfer_usdc.json" --network=ethereum_mainnet --block=12345678
-----
-+
-This command will:
-* Execute the monitor named "Large Transfer of USDC Token"
-* Run it against the specified network (ethereum_mainnet in this example)
-* Process the specific block number (12345678 in this example)
-
-[NOTE]
-====
-When running with a specific block number, both `--network` and `--block` parameters are required.
-====
-
 ==== 5. Next Steps:
 
 * Adjust the swap threshold by modifying the `expression` value.
 * Monitor additional dex swaps by creating new monitor configurations.
+* xref:quickstart.adoc#testing_the_monitor[Test the Monitor] configuration against a block number
 * Explore other examples in the link:https://github.com/OpenZeppelin/openzeppelin-monitor/tree/main/config/monitors[`config/monitors` directory].
+
+=== Testing the Monitor
+
+The monitor can be tested in two modes:
+
+==== 1. Latest Block Mode
+
+This mode processes the most recent blocks across all configured networks.
+
+[source,bash]
+----
+cargo run -- --monitorPath="config/monitor/evm_transfer_usdc.json"
+----
+
+What this does:
+
+* Runs the "Large Transfer of USDC Token" monitor
+* Targets all networks specified in the configuration
+* Processes only the latest block for each network
+
+==== 2. Specific Block Mode
+
+This mode allows you to analyze a particular block on a specific network, which is useful for debugging specific transactions, verifying monitor behavior on known events, and testing monitor performance on historical data.
+
+[source,bash]
+----
+cargo run -- \
+    --monitorPath="config/monitor/evm_transfer_usdc.json" \
+    --network=ethereum_mainnet \
+    --block=12345678
+----
+
+What this does:
+
+* Runs the "Large Transfer of USDC Token" monitor
+* Targets only the specified network (`ethereum_mainnet`)
+* Processes only the specified block (`12345678`)
+
+[IMPORTANT]
+====
+Specific Block Mode requires both parameters:
+
+* `--network`: The network to analyze
+* `--block`: The block number to process
+====
