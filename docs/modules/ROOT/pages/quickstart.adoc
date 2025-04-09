@@ -484,25 +484,37 @@ The monitor will now:
 2. Watch for large dex swaps.
 3. Send notifications via Slack when large swaps occur.
 
-**Running monitor against a specific block**
+**Testing the monitor**
 
-You can run the monitor against a specific block number for testing or debugging purposes. This is useful when you want to verify how the monitor behaves.
+You can test the monitor in two different ways:
 
+1. **Run monitor for latest blocks on all networks configured for the monitor**:
++
 [source,bash]
 ----
-cargo run -- --monitorName "Large Transfer of USDC Token" --network=ethereum_mainnet --block=12345678
+cargo run -- --monitorPath="config/monitor/evm_transfer_usdc.json"
 ----
-
++
 This command will:
-1. Execute the monitor named "Large Transfer of USDC Token"
-2. Run it against the ethereum_mainnet network
-3. Process block number 12345678 specifically
+* Execute the monitor named "Large Transfer of USDC Token"
+* Run it against all networks specified in the monitor configuration
+* Process the latest block for each network
 
-As a result, you will get a JSON output with the monitor matches, if any.
+2. **Run monitor for a specific block number**:
++
+[source,bash]
+----
+cargo run -- --monitorPath="config/monitor/evm_transfer_usdc.json" --network=ethereum_mainnet --block=12345678
+----
++
+This command will:
+* Execute the monitor named "Large Transfer of USDC Token"
+* Run it against the specified network (ethereum_mainnet in this example)
+* Process the specific block number (12345678 in this example)
 
 [NOTE]
 ====
-All three parameters (`--monitorName`, `--network`, and `--block`) are required when running against a specific block.
+When running with a specific block number, both `--network` and `--block` parameters are required.
 ====
 
 ==== 5. Next Steps:
