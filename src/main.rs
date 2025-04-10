@@ -476,6 +476,6 @@ mod tests {
 			.err()
 			.unwrap()
 			.to_string()
-			.contains("Failed to execute monitor"));
+			.contains("Monitor execution failed"));
 	}
 }
