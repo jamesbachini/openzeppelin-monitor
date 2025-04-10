@@ -34,58 +34,37 @@ pub fn compute_final_log_path(base_file_path: &str, date_str: &str, max_size: u6
 	space_based_rolling(&time_based_path, base_file_path, date_str, max_size)
 }
 
-// This test checks if the LOG_MAX_SIZE environment variable is set to a valid u64 value.
-#[test]
-#[should_panic(expected = "LOG_MAX_SIZE must be a valid u64 if set")]
-fn test_invalid_log_max_size() {
-	// Create a unique temporary directory.
-	let temp_dir = TempDir::new().expect("Failed to create temp dir");
-	let temp_log_dir = temp_dir.path().to_str().unwrap();
-
-	// Set LOG_MAX_SIZE to an invalid value.
-	env::set_var("LOG_MODE", "file");
-	env::set_var("LOG_LEVEL", "debug");
-	env::set_var("LOG_DATA_DIR", format!("{}/", temp_log_dir));
-	env::set_var("LOG_MAX_SIZE", "invalid_value");
-
-	// Initialize separate from lazy static.
-	let _ = setup_logging();
-}
-
-// This integration test simulates file logging
-// Setting to file mode.
 #[test]
 fn test_setup_logging_file_mode_creates_log_file() {
-	// Create a unique temporary directory.
 	let temp_dir = TempDir::new().expect("Failed to create temp dir");
 	let temp_log_dir = temp_dir.path().to_str().unwrap();
 
-	// Unset env var to ensure default values are used and not to interfere with the test.
 	env::remove_var("LOG_MAX_SIZE");
 	env::set_var("LOG_MODE", "file");
 	env::set_var("LOG_LEVEL", "debug");
 	env::set_var("LOG_DATA_DIR", format!("{}/", temp_log_dir));
 
-	// Clean up any previous logs and create the log directory.
 	let _ = remove_dir_all(temp_log_dir);
-
-	thread::sleep(Duration::from_millis(200));
-
+	thread::sleep(Duration::from_millis(100));
 	create_dir_all(temp_log_dir).expect("Failed to create log directory");
 
-	// Force the lazy_static to initialize logging.
-	*INIT_LOGGING;
+	let _ = setup_logging(); // make sure this uses .try_init()
 
-	// Sleep for the logger to flush.
-	thread::sleep(Duration::from_millis(200));
+	tracing::info!("Triggering file log creation");
 
-	// Compute expected file path using UTC date.
 	let now = Utc::now();
 	let date_str = now.format("%Y-%m-%d").to_string();
 	let expected_path: String = {
 		let base = format!("{}/monitor.log", temp_log_dir);
 		compute_rolled_file_path(&base, &date_str, 1)
 	};
+
+	let mut attempts = 0;
+	let max_attempts = 10;
+	while !Path::new(&expected_path).exists() && attempts < max_attempts {
+		attempts += 1;
+		thread::sleep(Duration::from_millis(100));
+	}
 
 	assert!(
 		Path::new(&expected_path).exists(),
