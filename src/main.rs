@@ -40,7 +40,7 @@ use crate::{
 	},
 	utils::{
 		logging::setup_logging, metrics::server::create_metrics_server,
-		monitor::execution::execute_monitor,
+		monitor::execution::execute_monitor, monitor::MonitorExecutionError,
 	},
 };
 
@@ -60,6 +60,10 @@ type MonitorServiceType = MonitorService<
 	TriggerRepository,
 >;
 
+// Function to test monitor execution
+//
+// This function is used to test the monitor execution by executing the monitor from a given path.
+// It is useful for debugging and testing the monitor execution.
 async fn test_monitor_execution(
 	path: String,
 	network_slug: Option<String>,
@@ -69,8 +73,11 @@ async fn test_monitor_execution(
 	filter_service: Arc<FilterService>,
 ) -> Result<()> {
 	if block_number.is_some() && network_slug.is_none() {
-		error!("Network name is required when executing a monitor for a specific block");
-		return Ok(());
+		return Err(Box::new(MonitorExecutionError::execution_error(
+			"Network name is required when executing a monitor for a specific block",
+			None,
+			None,
+		)));
 	}
 
 	info!("Executing monitor from path: '{}'", path);
@@ -91,10 +98,12 @@ async fn test_monitor_execution(
 			println!("Execution result: {:?}", matches);
 			Ok(())
 		}
-		Err(e) => {
-			error!("Monitor execution failed: {}", e);
-			Ok(())
-		}
+		Err(e) => Err(MonitorExecutionError::execution_error(
+			format!("Monitor execution failed: {}", e),
+			None,
+			None,
+		)
+		.into()),
 	}
 }
 
@@ -394,4 +403,78 @@ async fn main() -> Result<()> {
 
 	info!("Shutdown complete");
 	Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[tokio::test]
+	async fn test_monitor_execution_without_network_slug_with_block_number() {
+		// Initialize services
+		let (filter_service, _, _, _, monitor_service, network_service, _) = initialize_services::<
+			MonitorRepository<NetworkRepository, TriggerRepository>,
+			NetworkRepository,
+			TriggerRepository,
+		>(None, None, None)
+		.unwrap();
+
+		let path = "test_monitor.json".to_string();
+		let block_number = Some(12345);
+
+		// Execute test
+		let result = test_monitor_execution(
+			path,
+			None,
+			block_number,
+			monitor_service,
+			network_service,
+			filter_service,
+		)
+		.await;
+
+		// Verify result and error logging
+		assert!(result.is_err());
+		assert!(result
+			.err()
+			.unwrap()
+			.to_string()
+			.contains("Network name is required when executing a monitor for a specific block"));
+	}
+
+	#[tokio::test]
+	async fn test_monitor_execution_with_invalid_path() {
+		// Initialize services
+		let (filter_service, _, _, _, monitor_service, network_service, _) = initialize_services::<
+			MonitorRepository<NetworkRepository, TriggerRepository>,
+			NetworkRepository,
+			TriggerRepository,
+		>(None, None, None)
+		.unwrap();
+
+		// Test parameters
+		let path = "nonexistent_monitor.json".to_string();
+		let network_slug = Some("test_network".to_string());
+		let block_number = Some(12345);
+
+		// Execute test
+		let result = test_monitor_execution(
+			path,
+			network_slug,
+			block_number,
+			monitor_service,
+			network_service,
+			filter_service,
+		)
+		.await;
+
+		// Verify result
+		assert!(result.is_err());
+		println!("result: {:?}", result);
+		assert!(result
+			.err()
+			.unwrap()
+			.to_string()
+			.contains("Failed to execute monitor"));
+	}
 }
