@@ -346,7 +346,7 @@ The monitor will now:
 
 * Adjust the transfer threshold by modifying the `expression` value.
 * Monitor additional ERC20 tokens by creating new monitor configurations.
-* xref:quickstart.adoc#testing_the_monitor[Test the Monitor] configuration against a block number
+* xref:index.adoc#testing_your_configuration[Test the Monitor] configuration against a block number
 * Explore other examples in the link:https://github.com/OpenZeppelin/openzeppelin-monitor/tree/main/config/monitors[`config/monitors` directory].
 
 === Monitoring Dex Swaps (Stellar):

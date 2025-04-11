@@ -471,7 +471,6 @@ mod tests {
 
 		// Verify result
 		assert!(result.is_err());
-		println!("result: {:?}", result);
 		assert!(result
 			.err()
 			.unwrap()

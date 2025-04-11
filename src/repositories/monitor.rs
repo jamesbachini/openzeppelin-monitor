@@ -183,6 +183,9 @@ pub trait MonitorRepositoryTrait<N: NetworkRepositoryTrait, T: TriggerRepository
 		trigger_service: Option<TriggerService<T>>,
 	) -> Result<HashMap<String, Monitor>, RepositoryError>;
 
+	/// Load a monitor from a specific path
+	///
+	/// Loads a monitor configuration from a specific path and validates all network and trigger references.
 	fn load_from_path(
 		&self,
 		path: Option<&Path>,
@@ -262,6 +265,9 @@ impl<N: NetworkRepositoryTrait, T: TriggerRepositoryTrait> MonitorRepositoryTrai
 		Ok(monitors)
 	}
 
+	/// Load a monitor from a specific path
+	///
+	/// Loads a monitor configuration from a specific path and validates all network and trigger references.
 	fn load_from_path(
 		&self,
 		path: Option<&Path>,
@@ -408,6 +414,9 @@ impl<M: MonitorRepositoryTrait<N, T>, N: NetworkRepositoryTrait, T: TriggerRepos
 		self.repository.get_all()
 	}
 
+	/// Load a monitor from a specific path
+	///
+	/// Loads a monitor configuration from a specific path and validates all network and trigger references.
 	pub fn load_from_path(
 		&self,
 		path: Option<&Path>,
