@@ -1,5 +1,11 @@
 # OpenZeppelin Monitor
 
+This is a fork of the original code by @openzeppelin which contains the config files to monitor Kale transfers on Stellar for the tutorial at:
+https://jamesbachini.com/stellar-openzeppelin-monitor/
+
+
+## Original Readme
+
 [![codecov](https://codecov.io/gh/OpenZeppelin/openzeppelin-monitor/branch/main/graph/badge.svg?token=VWIY5XZNDB)](https://codecov.io/gh/OpenZeppelin/openzeppelin-monitor)
 
 > :warning: This software is in alpha. Use in production environments at your own risk.
