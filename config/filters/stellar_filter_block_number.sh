@@ -65,17 +65,11 @@ main() {
     # Check if even or odd using modulo
     is_even=$((ledger_number % 2))
 
-    if [ $is_even -eq 0 ]; then
-        echo "Ledger number $ledger_number is even"
-        echo "Verbose mode: $verbose"
-        echo "true"
-        exit 0
-    else
-        echo "Ledger number $ledger_number is odd"
-        echo "Verbose mode: $verbose"
-        echo "false"
-        exit 0
-    fi
+    echo "Ledger number $ledger_number is even"
+    echo "Verbose mode: $verbose"
+    echo "true"
+    exit 0
+
 }
 
 # Call main function
