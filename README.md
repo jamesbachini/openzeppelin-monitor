@@ -1,6 +1,6 @@
 # OpenZeppelin Monitor
 
-This is a fork of the original code by @openzeppelin which contains the config files to monitor Kale transfers on Stellar for the tutorial at:
+This is a fork of the original code by @openzeppelin which contains the config files to monitor USDC transfers on Stellar for the tutorial at:
 https://jamesbachini.com/stellar-openzeppelin-monitor/
 
 
