@@ -1,0 +1,35 @@
+{
+  "name": "USDC Transfer",
+  "paused": false,
+  "networks": [
+    "stellar_mainnet"
+  ],
+  "addresses": [
+    {
+      "address": "CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75"
+    }
+  ],
+  "match_conditions": {
+    "functions": [
+      {
+        "signature": "transfer(Address,Address,I128)",
+        "expression": null
+      }
+    ],
+    "events": [],
+    "transactions": [
+      {
+        "status": "Success",
+        "expression": null
+      }
+    ]
+  },
+  "trigger_conditions": [{
+    "script_path": "./config/filters/stellar_filter_block_number.sh",
+    "language": "Bash",
+    "timeout_ms": 1000
+  }],
+  "triggers": [
+    "stellar_usdc_telegram"
+  ]
+}

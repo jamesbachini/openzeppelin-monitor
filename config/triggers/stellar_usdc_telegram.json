@@ -1,0 +1,15 @@
+{
+  "stellar_usdc_telegram": {
+    "name": "USDC Telegram Trigger",
+    "trigger_type": "telegram",
+    "config": {
+      "token": "",
+      "chat_id": "",
+      "disable_web_preview": true,
+      "message": {
+        "title": "USDC Transfer Notification",
+        "body": "${monitor_name} | https://stellar.expert/explorer/public/tx/${transaction_hash}"
+      }
+    }
+  }
+}

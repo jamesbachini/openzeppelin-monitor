@@ -25,10 +25,6 @@ tests/
 data/**/*.txt
 data/**/*.json
 
-# Ignore actual config files but not examples
-config/**/*.json
-!config/**/*.json.example
-
 # Ignore .env files
 .env
 
